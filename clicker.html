@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Кликер</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #e8e8e8;
+    }
+    .card {
+      text-align: center;
+      padding: 2rem 2.5rem;
+      background: rgba(255,255,255,0.06);
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+      max-width: 320px;
+    }
+    .app-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 1rem;
+      filter: drop-shadow(0 4px 12px rgba(0,200,150,0.35));
+    }
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 0.25rem;
+    }
+    .subtitle {
+      font-size: 0.85rem;
+      opacity: 0.65;
+      margin-bottom: 1.5rem;
+    }
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+    button.ctrl {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+    }
+    button.ctrl:active { transform: scale(0.97); }
+    button.ctrl:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+    #btnStart {
+      background: linear-gradient(180deg, #00c896, #00a67d);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(0,200,150,0.4);
+    }
+    #btnStart:not(:disabled):hover {
+      box-shadow: 0 6px 20px rgba(0,200,150,0.5);
+    }
+    #btnStop {
+      background: linear-gradient(180deg, #e74c3c, #c0392b);
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(231,76,60,0.35);
+    }
+    #btnStop:not(:disabled):hover {
+      box-shadow: 0 6px 20px rgba(231,76,60,0.45);
+    }
+    .status {
+      font-size: 0.8rem;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(0,0,0,0.25);
+      margin-bottom: 1.25rem;
+    }
+    .status.running { color: #00e6a8; }
+    .status.stopped { color: #aaa; }
+    #demoTarget {
+      width: 100%;
+      padding: 14px;
+      border-radius: 10px;
+      border: 2px dashed rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.05);
+      color: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    #demoTarget.pulse {
+      animation: pulse 0.3s ease;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); background: rgba(0,200,150,0.2); }
+      100% { transform: scale(1); }
+    }
+    .hint {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <svg class="app-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="64" height="64" rx="14" fill="#0d7377"/>
+      <circle cx="32" cy="32" r="18" stroke="#00e6a8" stroke-width="3" fill="none"/>
+      <path d="M32 20v12l8 5" stroke="#00e6a8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M22 44h20" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="22" cy="44" r="4" fill="#00c896"/>
+      <circle cx="42" cy="44" r="4" fill="#e74c3c"/>
+    </svg>
+
+    <h1>Кликер</h1>
+    <p class="subtitle">Раз в 5 секунд</p>
+
+    <div class="controls">
+      <button type="button" class="ctrl" id="btnStart" title="Запуск">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Старт
+      </button>
+      <button type="button" class="ctrl" id="btnStop" disabled title="Остановка">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+        Стоп
+      </button>
+    </div>
+
+    <div class="status stopped" id="status">Остановлен</div>
+
+    <button type="button" id="demoTarget">Цель для кликов (демо)</button>
+    <p class="hint">Для другого сайта используйте console-clicker.js</p>
+  </div>
+
+  <script>
+    let timer = null;
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const status = document.getElementById('status');
+    const target = document.getElementById('demoTarget');
+
+    function doClick() {
+      target.click();
+      target.classList.remove('pulse');
+      void target.offsetWidth;
+      target.classList.add('pulse');
+      status.textContent = 'Клик: ' + new Date().toLocaleTimeString();
+    }
+
+    function start() {
+      if (timer) return;
+      timer = setInterval(doClick, 5000);
+      doClick();
+      status.className = 'status running';
+      status.textContent = 'Работает — каждые 5 сек';
+      btnStart.disabled = true;
+      btnStop.disabled = false;
+    }
+
+    function stop() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      status.className = 'status stopped';
+      status.textContent = 'Остановлен';
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+    }
+
+    btnStart.addEventListener('click', start);
+    btnStop.addEventListener('click', stop);
+    target.addEventListener('click', () => {
+      if (!timer) target.textContent = 'Клик! ' + new Date().toLocaleTimeString();
+    });
+  </script>
+</body>
+</html>
