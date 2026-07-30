@@ -1,0 +1,17 @@
+# Sample of the keys that matter in your Minecraft server's server.properties
+# (the server generates the full file on first launch — edit these lines in it).
+#
+# CRITICAL: online-mode=false lets the offline-username bot (auth=offline) join.
+# Keep this server on localhost/LAN only — offline-mode is insecure on the open internet.
+
+online-mode=false
+server-port=25565
+server-ip=
+white-list=false
+# creative makes the build/chop demos effortless (infinite blocks, no mobs killing the bot):
+gamemode=creative
+difficulty=peaceful
+# let the (non-op) bot build/break near spawn:
+spawn-protection=0
+enable-command-block=true
+motd=ClaudeBot test server

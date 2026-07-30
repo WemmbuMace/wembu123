@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+
+# Minecraft server runtime — keep only the sample config + launch script,
+# not the downloaded jars, world saves, logs or player data.
+/server/*
+!/server/server.properties.sample
+!/server/run-server.bat

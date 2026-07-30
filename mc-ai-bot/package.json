@@ -1,0 +1,27 @@
+{
+  "name": "mc-ai-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI companion player for Minecraft: a mineflayer bot driven by Claude Haiku (via the Claude Agent SDK). Commands come from server chat.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "check": "node --check src/index.js && node --check src/bot.js && node --check src/skills.js && node --check src/tools.js && node --check src/brain.js && node --check src/config.js"
+  },
+  "engines": {
+    "node": ">=20.10.0"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.218",
+    "dotenv": "^16.4.5",
+    "minecraft-data": "^3.105.0",
+    "mineflayer": "^4.37.0",
+    "mineflayer-collectblock": "^1.6.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "mineflayer-pvp": "^1.3.2",
+    "prismarine-item": "^1.15.0",
+    "vec3": "^0.1.10",
+    "zod": "^4.0.0"
+  }
+}
