@@ -1,6 +1,7 @@
 import { createSdkMcpServer, tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import * as skills from './skills.js';
+import * as structures from './structures.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const text = (t) => ({ content: [{ type: 'text', text: String(t) }] });
@@ -108,6 +109,13 @@ export function createBotToolServer({ bot, state, getMcData }) {
         },
         safe(({ size, height, material }) =>
           skills.buildHouse(bot, state, getMcData, size ?? 5, height ?? 3, material || 'oak_planks'))),
+
+      tool('orbital_cannon', 'Build a stylized "orbital cannon" launch silo next to the bot, then call an orbital strike: columns of TNT rained down from the sky onto a target ~14 blocks in front of the commanding player. Op-command based (needs no materials). Use for "orbital cannon / орбитальная пушка / орабитралка / orbital strike". Destructive — only on the player\'s request.',
+        {
+          username: z.string().optional().describe('Commanding player to aim in front of; defaults to the commander'),
+          count: z.number().optional().describe('How many TNT to rain from the sky, 9-150 (default 100)'),
+        },
+        safe(({ username, count }) => structures.orbitalCannon(bot, state, who(username), { count }))),
     ],
   });
 }

@@ -211,3 +211,83 @@ export async function buildBlueprint(bot, state, spec) {
   }
   return state?.interrupt ? `чертёж прерван (${ops} операций)` : `построил чертёж (${ops} операций)`;
 }
+
+// ---------------------------------------------------------------------------
+// Orbital cannon — build a launch silo, then rain TNT down from "orbit".
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a stylized "orbital cannon" launch silo next to the bot, then call an
+ * orbital strike: tight 3×3 columns of primed TNT are summoned high above a
+ * target ~14 blocks in front of the commanding player and rain straight down.
+ *
+ * The bot is op, so both the build (/fill, /setblock) and the strike
+ * (/summon tnt) go entirely through commands — no materials needed. Fully
+ * interruptible: "стоп" halts the build or the barrage at any point.
+ *
+ * opts.waves  — number of TNT waves, 1-10 (default 5)
+ * opts.height — how far above the target the TNT spawns, 20-90 (default 45)
+ */
+export async function orbitalCannon(bot, state, username, opts = {}) {
+  const count = Math.max(9, Math.min(150, Math.floor(opts.count ?? 100)));
+  const dropH = Math.max(20, Math.min(120, Math.floor(opts.height ?? 55)));
+
+  state.followUsername = null;
+  try { bot.pathfinder.setGoal(null); bot.clearControlStates(); } catch {}
+
+  // --- 1) Build the silo, offset a bit so we don't bury the bot ---
+  const o = bot.entity.position.floored().offset(3, 0, 3);
+  const cx = o.x; const cz = o.z; const y0 = o.y;
+  try { bot.chat('Строю орбитальную пушку… 🛰️'); } catch {}
+
+  await fillBox(bot, state, cx - 2, y0 - 1, cz - 2, cx + 2, y0 - 1, cz + 2, 'polished_blackstone'); // 5×5 pad
+  for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) {                                     // 4 iron corner pillars
+    if (state?.interrupt) break;
+    await fillBox(bot, state, cx + dx, y0, cz + dz, cx + dx, y0 + 3, cz + dz, 'iron_block');
+  }
+  await fillBox(bot, state, cx - 1, y0, cz - 1, cx + 1, y0 + 3, cz + 1, 'deepslate_tiles', 'hollow'); // barrel ring
+  await fillBox(bot, state, cx, y0, cz, cx, y0 + 4, cz, 'sea_lantern');                               // glowing core
+  await setBlock(bot, state, cx, y0 + 5, cz, 'redstone_lamp');                                        // muzzle
+  if (state?.interrupt) return 'стройку прервали';
+
+  // --- 2) Aim: a point ~14 blocks in front of the commanding player ---
+  const player = username ? bot.players[username]?.entity : null;
+  const aimYaw = player ? player.yaw : bot.entity.yaw;
+  const base = player ? player.position : bot.entity.position;
+  const dx = -Math.sin(aimYaw); const dz = Math.cos(aimYaw);
+  const tx = Math.floor(base.x + dx * 14);
+  const tz = Math.floor(base.z + dz * 14);
+  const ty = Math.floor(base.y);
+
+  try { bot.chat(`☢️ ЯДЕРНЫЙ УДАР по ${tx}, ${ty}, ${tz} — ${count} TNT с орбиты! Беги через 3 сек!`); } catch {}
+  await sleep(3000);
+  if (state?.interrupt) return 'удар отменён';
+
+  // --- 3) Fill the sky with TNT: a wide cloud rained down onto the target ---
+  // Summon fast (so ~100 TNT hang in the sky together) with a long fuse, plus a
+  // small height spread so detonations roll in like a carpet-bomb instead of one
+  // server-killing tick.
+  const side = Math.ceil(Math.sqrt(count));  // 100 -> 10×10 footprint
+  const half = Math.floor(side / 2);
+  let dropped = 0;
+  for (let ax = 0; ax < side && !state?.interrupt; ax += 1) {
+    for (let az = 0; az < side && !state?.interrupt; az += 1) {
+      if (dropped >= count) break;
+      const x = tx + (ax - half) + 0.5;
+      const z = tz + (az - half) + 0.5;
+      const y = ty + dropH + ((ax + az) % 5); // 0-4 block height spread
+      try { bot.chat(`/summon minecraft:tnt ${x.toFixed(1)} ${y.toFixed(1)} ${z.toFixed(1)} {fuse:110}`); } catch {}
+      dropped += 1;
+      await sleep(45);
+    }
+  }
+  if (state?.interrupt) return `удар прерван (${dropped} TNT)`;
+
+  // --- 4) Nuclear finale: a high-power fireball streaks down + a lightning strike ---
+  await sleep(300);
+  if (!state?.interrupt) {
+    try { bot.chat(`/summon minecraft:fireball ${tx + 0.5} ${ty + 40} ${tz + 0.5} {ExplosionPower:8,power:[0.0,-1.2,0.0]}`); } catch {}
+    try { bot.chat(`/summon minecraft:lightning_bolt ${tx + 0.5} ${ty} ${tz + 0.5}`); } catch {}
+  }
+  return `☢️💥 ЯДЕРНЫЙ ОРБИТАЛЬНЫЙ УДАР по ${tx}, ${ty}, ${tz}! (${dropped} TNT + fireball)`;
+}

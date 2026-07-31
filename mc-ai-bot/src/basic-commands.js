@@ -6,7 +6,7 @@ import {
   fireworks, lightning, setScale, giveEffect, dance, summonPet, sparWithPlayer,
   berserk, bowVolley, fireballAt, webTrap, knockback,
 } from './skills.js';
-import { buildCastle, digRoom, tunnel, platform } from './structures.js';
+import { buildCastle, digRoom, tunnel, platform, orbitalCannon } from './structures.js';
 import { describeSituation } from './observe.js';
 
 function castleMaterial(t) {
@@ -67,6 +67,7 @@ export async function runBasicCommand({ bot, state, getMcData, username, text })
 
   if (/(дай|выдай|принеси мне|give me)/.test(t)) return giveToPlayer(bot, username, t);
   if (/(вагонет|рельс|взорв|бабах|огнен.*стрел|тнт.*пушк|tnt.*cart)/.test(t)) return tntMinecartTrick(bot, state, username);
+  if (/(орабит|орбитал|орбиталк|орбитралк|орбит|orbital|(^|\s)пушк|cannon|силос|silo|страйк|strike)/.test(t)) return orbitalCannon(bot, state, username);
   if (/(мэйс|мейс|mace|булав|молот|смэш|smash)/.test(t)) return maceSmash(bot, state);
   if (/(цветок|цветочек|цвето|flower|тюльпан|ромашк|(^|\s)мак($|\s))/.test(t)) return holdFlower(bot);
   if (/(убей|убив|атаку|напад|дерись|спарринг|спаринг|kill|attack|ударь|бей меня|подерись)/.test(t)) return sparWithPlayer(bot, state, username);
