@@ -110,13 +110,14 @@ export function createBotToolServer({ bot, state, getMcData }) {
         safe(({ size, height, material }) =>
           skills.buildHouse(bot, state, getMcData, size ?? 5, height ?? 3, material || 'oak_planks'))),
 
-      tool('orbital_cannon', 'Build an "orbital cannon" silo next to the bot, then paint a giant RING of dynamite (TNT blocks) floating in the sky in front of the commanding player and, once fully placed, ignite it so the whole circle chain-detonates. Op-command based (needs no materials). Use for "orbital cannon / орбитальная пушка / орабитралка / orbital strike / TNT ring". Very destructive and server-heavy — only on the player\'s request.',
+      tool('orbital_cannon', 'Build an "orbital cannon" silo next to the bot, then spawn a FILLED disc of active (lit) TNT floating in the sky in front of the commanding player. All of it lights at once, falls, and detonates together on the ground (never in the air) via per-TNT fuse compensation. A dense diameter-100 disc would be ~7850 TNT and crash the server, so it is filled up to `max` TNT spread across the diameter. Op-command based (needs no materials). Use for "orbital cannon / орбитальная пушка / орабитралка / orbital strike". Very destructive and server-heavy — only on the player\'s request.',
         {
           username: z.string().optional().describe('Commanding player to aim in front of; defaults to the commander'),
-          size: z.number().optional().describe('Ring diameter in blocks, 6-120 (default 100)'),
-          height: z.number().optional().describe('How far above the ground the ring floats, 5-120 (default 25)'),
+          size: z.number().optional().describe('Disc diameter in blocks, 6-120 (default 100)'),
+          height: z.number().optional().describe('How far above the ground the disc spawns, 5-120 (default 25)'),
+          max: z.number().optional().describe('Max number of TNT (server-survival cap), 9-600 (default 250)'),
         },
-        safe(({ username, size, height }) => structures.orbitalCannon(bot, state, who(username), { size, height }))),
+        safe(({ username, size, height, max }) => structures.orbitalCannon(bot, state, who(username), { size, height, max }))),
     ],
   });
 }

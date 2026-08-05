@@ -213,27 +213,31 @@ export async function buildBlueprint(bot, state, spec) {
 }
 
 // ---------------------------------------------------------------------------
-// Orbital cannon — build a launch silo, then a giant TNT ring in the sky and ignite it.
+// Orbital cannon — build a silo, then drop a filled disc of primed TNT that all
+// lands and detonates together on the ground (never in the air).
 // ---------------------------------------------------------------------------
 
 /**
- * Build a stylized "orbital cannon" launch silo next to the bot, then paint a
- * giant RING of dynamite (TNT blocks) floating in the sky in front of the
- * commanding player. Once the whole ring is placed, it is ignited at several
- * points and the chain reaction detonates the entire circle.
+ * Build a stylized "orbital cannon" launch silo next to the bot, then spawn a
+ * FILLED disc of ACTIVE (primed / lit) TNT floating in the sky in front of the
+ * commanding player. Every TNT is lit at once, falls, and only detonates once it
+ * has landed — and thanks to per-TNT fuse compensation they all blow up together
+ * on the ground, not in the air.
  *
- * TNT *blocks* (not primed TNT) are used so the ring actually hangs in mid-air
- * while it's built; ignition then chain-reacts around it. The bot is op, so the
- * build + ignition go through commands — no materials needed. Fully
- * interruptible: "стоп" halts at any point (an un-ignited ring just hangs there).
+ * NOTE: a fully-dense disc of diameter 100 is ~7850 TNT, which would crash the
+ * server outright. So the disc is filled up to `max` TNT spread evenly across the
+ * requested diameter. The bot is op, so it's all commands — no materials needed.
+ * Fully interruptible: "стоп" halts it.
  *
- * opts.size   — ring diameter in blocks, 6-120 (default 100 => a 100×100 ring)
- * opts.height — how far above the ground the ring floats, 5-120 (default 25)
+ * opts.size   — disc diameter in blocks, 6-120 (default 100)
+ * opts.height — how far above the ground the disc spawns, 5-120 (default 25)
+ * opts.max    — max number of TNT (server-survival cap), 9-600 (default 250)
  */
 export async function orbitalCannon(bot, state, username, opts = {}) {
   const diameter = Math.max(6, Math.min(120, Math.floor(opts.size ?? 100)));
   const r = Math.floor(diameter / 2);
   const up = Math.max(5, Math.min(120, Math.floor(opts.height ?? 25)));
+  const maxTnt = Math.max(9, Math.min(600, Math.floor(opts.max ?? 250)));
 
   state.followUsername = null;
   try { bot.pathfinder.setGoal(null); bot.clearControlStates(); } catch {}
@@ -253,35 +257,46 @@ export async function orbitalCannon(bot, state, username, opts = {}) {
   await setBlock(bot, state, px, y0 + 5, pz, 'redstone_lamp');                                        // muzzle
   if (state?.interrupt) return 'стройку прервали';
 
-  // --- 2) Aim: centre the ring in front of the player, floating `up` blocks up ---
+  // --- 2) Aim: centre the disc in front of the player, floating `up` blocks up ---
   const player = username ? bot.players[username]?.entity : null;
   const aimYaw = player ? player.yaw : bot.entity.yaw;
   const base = player ? player.position : bot.entity.position;
   const dx = -Math.sin(aimYaw); const dz = Math.cos(aimYaw);
-  const cx = Math.floor(base.x + dx * (r + 6));   // push centre out so the ring sits in front
+  const cx = Math.floor(base.x + dx * (r + 6));   // push centre out so the disc sits in front
   const cz = Math.floor(base.z + dz * (r + 6));
-  const ringY = Math.floor(base.y) + up;
+  const discY = Math.floor(base.y) + up;
 
-  // --- 3) Lay the whole ring of TNT blocks (they hang in mid-air) ---
-  const ring = circlePoints(cx, cz, r, false);
-  try { bot.chat(`💣 Ставлю кольцо из динамита ${diameter}×${diameter} — ${ring.length} TNT на высоте ${up}. Подожди, ставится…`); } catch {}
-  let placed = 0;
-  for (const [x, z] of ring) {
+  // Filled disc, thinned evenly to the survival cap.
+  let pts = circlePoints(cx, cz, r, true);
+  if (pts.length > maxTnt) {
+    const stride = Math.ceil(pts.length / maxTnt);
+    pts = pts.filter((_, i) => i % stride === 0);
+  }
+  const N = pts.length;
+
+  // --- 3) Drop the disc: primed TNT with compensated fuses so it all lands AND
+  // detonates together on the ground. Earlier-summoned TNT gets a longer fuse so
+  // every fuse hits 0 at the same moment (well after everything has landed). ---
+  const delayMs = 8;
+  const spanTicks = Math.ceil((N * delayMs) / 50); // ticks spent summoning the whole disc
+  const landFuse = up + 55;                        // enough ticks so even TNT that falls into a pit lands first
+  const detonateAt = landFuse + spanTicks;         // common detonation tick (from first summon)
+
+  try { bot.chat(`💣 Диск из ${N} TNT (d${diameter}) на высоте ${up} — зажигаю всё разом, упадёт и рванёт на земле! Беги!`); } catch {}
+  await sleep(1200);
+  if (state?.interrupt) return 'отменено';
+
+  let n = 0;
+  for (let i = 0; i < N; i += 1) {
     if (state?.interrupt) break;
-    await setBlock(bot, state, x, ringY, z, 'tnt');
-    placed += 1;
+    const [x, z] = pts[i];
+    const summonTick = Math.round((i * delayMs) / 50);
+    const fuse = Math.max(landFuse, detonateAt - summonTick);
+    try { bot.chat(`/summon minecraft:tnt ${x + 0.5} ${discY + 0.5} ${z + 0.5} {fuse:${fuse}}`); } catch {}
+    n += 1;
+    await sleep(delayMs);
   }
-  if (state?.interrupt) return `кольцо прервано (${placed} TNT висит — сломай или подожги сам)`;
-
-  // --- 4) Ignite: instant primed-TNT seeds spaced around the ring -> chain reaction ---
-  try { bot.chat('🔥 Кольцо готово — ПОДЖИГАЮ! Беги!'); } catch {}
-  const seeds = Math.max(8, Math.round(ring.length / 24)); // ~1 ignition point per 24 ring blocks
-  for (let i = 0; i < seeds && !state?.interrupt; i += 1) {
-    const ang = (2 * Math.PI * i) / seeds;
-    const sx = cx + Math.round(r * Math.cos(ang));
-    const sz = cz + Math.round(r * Math.sin(ang));
-    try { bot.chat(`/summon minecraft:tnt ${sx + 0.5} ${ringY + 0.5} ${sz + 0.5} {fuse:1}`); } catch {}
-    await sleep(50);
-  }
-  return `💥 Кольцо из ${placed} динамита подожжено над ${cx}, ${ringY}, ${cz}!`;
+  return state?.interrupt
+    ? `прервано (${n} TNT в воздухе)`
+    : `💥 Диск из ${n} TNT сброшен над ${cx}, ${discY}, ${cz} — зажёгся разом, упал и рванул на земле!`;
 }
