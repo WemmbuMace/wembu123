@@ -213,81 +213,75 @@ export async function buildBlueprint(bot, state, spec) {
 }
 
 // ---------------------------------------------------------------------------
-// Orbital cannon — build a launch silo, then rain TNT down from "orbit".
+// Orbital cannon — build a launch silo, then a giant TNT ring in the sky and ignite it.
 // ---------------------------------------------------------------------------
 
 /**
- * Build a stylized "orbital cannon" launch silo next to the bot, then call an
- * orbital strike: tight 3×3 columns of primed TNT are summoned high above a
- * target ~14 blocks in front of the commanding player and rain straight down.
+ * Build a stylized "orbital cannon" launch silo next to the bot, then paint a
+ * giant RING of dynamite (TNT blocks) floating in the sky in front of the
+ * commanding player. Once the whole ring is placed, it is ignited at several
+ * points and the chain reaction detonates the entire circle.
  *
- * The bot is op, so both the build (/fill, /setblock) and the strike
- * (/summon tnt) go entirely through commands — no materials needed. Fully
- * interruptible: "стоп" halts the build or the barrage at any point.
+ * TNT *blocks* (not primed TNT) are used so the ring actually hangs in mid-air
+ * while it's built; ignition then chain-reacts around it. The bot is op, so the
+ * build + ignition go through commands — no materials needed. Fully
+ * interruptible: "стоп" halts at any point (an un-ignited ring just hangs there).
  *
- * opts.waves  — number of TNT waves, 1-10 (default 5)
- * opts.height — how far above the target the TNT spawns, 20-90 (default 45)
+ * opts.size   — ring diameter in blocks, 6-120 (default 100 => a 100×100 ring)
+ * opts.height — how far above the ground the ring floats, 5-120 (default 25)
  */
 export async function orbitalCannon(bot, state, username, opts = {}) {
-  const count = Math.max(9, Math.min(150, Math.floor(opts.count ?? 100)));
-  const dropH = Math.max(20, Math.min(120, Math.floor(opts.height ?? 55)));
+  const diameter = Math.max(6, Math.min(120, Math.floor(opts.size ?? 100)));
+  const r = Math.floor(diameter / 2);
+  const up = Math.max(5, Math.min(120, Math.floor(opts.height ?? 25)));
 
   state.followUsername = null;
   try { bot.pathfinder.setGoal(null); bot.clearControlStates(); } catch {}
 
   // --- 1) Build the silo, offset a bit so we don't bury the bot ---
   const o = bot.entity.position.floored().offset(3, 0, 3);
-  const cx = o.x; const cz = o.z; const y0 = o.y;
+  const px = o.x; const pz = o.z; const y0 = o.y;
   try { bot.chat('Строю орбитальную пушку… 🛰️'); } catch {}
 
-  await fillBox(bot, state, cx - 2, y0 - 1, cz - 2, cx + 2, y0 - 1, cz + 2, 'polished_blackstone'); // 5×5 pad
-  for (const [dx, dz] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) {                                     // 4 iron corner pillars
+  await fillBox(bot, state, px - 2, y0 - 1, pz - 2, px + 2, y0 - 1, pz + 2, 'polished_blackstone'); // 5×5 pad
+  for (const [dx0, dz0] of [[-2, -2], [2, -2], [-2, 2], [2, 2]]) {                                   // 4 iron corner pillars
     if (state?.interrupt) break;
-    await fillBox(bot, state, cx + dx, y0, cz + dz, cx + dx, y0 + 3, cz + dz, 'iron_block');
+    await fillBox(bot, state, px + dx0, y0, pz + dz0, px + dx0, y0 + 3, pz + dz0, 'iron_block');
   }
-  await fillBox(bot, state, cx - 1, y0, cz - 1, cx + 1, y0 + 3, cz + 1, 'deepslate_tiles', 'hollow'); // barrel ring
-  await fillBox(bot, state, cx, y0, cz, cx, y0 + 4, cz, 'sea_lantern');                               // glowing core
-  await setBlock(bot, state, cx, y0 + 5, cz, 'redstone_lamp');                                        // muzzle
+  await fillBox(bot, state, px - 1, y0, pz - 1, px + 1, y0 + 3, pz + 1, 'deepslate_tiles', 'hollow'); // barrel ring
+  await fillBox(bot, state, px, y0, pz, px, y0 + 4, pz, 'sea_lantern');                               // glowing core
+  await setBlock(bot, state, px, y0 + 5, pz, 'redstone_lamp');                                        // muzzle
   if (state?.interrupt) return 'стройку прервали';
 
-  // --- 2) Aim: a point ~14 blocks in front of the commanding player ---
+  // --- 2) Aim: centre the ring in front of the player, floating `up` blocks up ---
   const player = username ? bot.players[username]?.entity : null;
   const aimYaw = player ? player.yaw : bot.entity.yaw;
   const base = player ? player.position : bot.entity.position;
   const dx = -Math.sin(aimYaw); const dz = Math.cos(aimYaw);
-  const tx = Math.floor(base.x + dx * 14);
-  const tz = Math.floor(base.z + dz * 14);
-  const ty = Math.floor(base.y);
+  const cx = Math.floor(base.x + dx * (r + 6));   // push centre out so the ring sits in front
+  const cz = Math.floor(base.z + dz * (r + 6));
+  const ringY = Math.floor(base.y) + up;
 
-  try { bot.chat(`☢️ ЯДЕРНЫЙ УДАР по ${tx}, ${ty}, ${tz} — ${count} TNT с орбиты! Беги через 3 сек!`); } catch {}
-  await sleep(3000);
-  if (state?.interrupt) return 'удар отменён';
-
-  // --- 3) Fill the sky with TNT: a wide cloud rained down onto the target ---
-  // Summon fast (so ~100 TNT hang in the sky together) with a long fuse, plus a
-  // small height spread so detonations roll in like a carpet-bomb instead of one
-  // server-killing tick.
-  const side = Math.ceil(Math.sqrt(count));  // 100 -> 10×10 footprint
-  const half = Math.floor(side / 2);
-  let dropped = 0;
-  for (let ax = 0; ax < side && !state?.interrupt; ax += 1) {
-    for (let az = 0; az < side && !state?.interrupt; az += 1) {
-      if (dropped >= count) break;
-      const x = tx + (ax - half) + 0.5;
-      const z = tz + (az - half) + 0.5;
-      const y = ty + dropH + ((ax + az) % 5); // 0-4 block height spread
-      try { bot.chat(`/summon minecraft:tnt ${x.toFixed(1)} ${y.toFixed(1)} ${z.toFixed(1)} {fuse:110}`); } catch {}
-      dropped += 1;
-      await sleep(45);
-    }
+  // --- 3) Lay the whole ring of TNT blocks (they hang in mid-air) ---
+  const ring = circlePoints(cx, cz, r, false);
+  try { bot.chat(`💣 Ставлю кольцо из динамита ${diameter}×${diameter} — ${ring.length} TNT на высоте ${up}. Подожди, ставится…`); } catch {}
+  let placed = 0;
+  for (const [x, z] of ring) {
+    if (state?.interrupt) break;
+    await setBlock(bot, state, x, ringY, z, 'tnt');
+    placed += 1;
   }
-  if (state?.interrupt) return `удар прерван (${dropped} TNT)`;
+  if (state?.interrupt) return `кольцо прервано (${placed} TNT висит — сломай или подожги сам)`;
 
-  // --- 4) Nuclear finale: a high-power fireball streaks down + a lightning strike ---
-  await sleep(300);
-  if (!state?.interrupt) {
-    try { bot.chat(`/summon minecraft:fireball ${tx + 0.5} ${ty + 40} ${tz + 0.5} {ExplosionPower:8,power:[0.0,-1.2,0.0]}`); } catch {}
-    try { bot.chat(`/summon minecraft:lightning_bolt ${tx + 0.5} ${ty} ${tz + 0.5}`); } catch {}
+  // --- 4) Ignite: instant primed-TNT seeds spaced around the ring -> chain reaction ---
+  try { bot.chat('🔥 Кольцо готово — ПОДЖИГАЮ! Беги!'); } catch {}
+  const seeds = Math.max(8, Math.round(ring.length / 24)); // ~1 ignition point per 24 ring blocks
+  for (let i = 0; i < seeds && !state?.interrupt; i += 1) {
+    const ang = (2 * Math.PI * i) / seeds;
+    const sx = cx + Math.round(r * Math.cos(ang));
+    const sz = cz + Math.round(r * Math.sin(ang));
+    try { bot.chat(`/summon minecraft:tnt ${sx + 0.5} ${ringY + 0.5} ${sz + 0.5} {fuse:1}`); } catch {}
+    await sleep(50);
   }
-  return `☢️💥 ЯДЕРНЫЙ ОРБИТАЛЬНЫЙ УДАР по ${tx}, ${ty}, ${tz}! (${dropped} TNT + fireball)`;
+  return `💥 Кольцо из ${placed} динамита подожжено над ${cx}, ${ringY}, ${cz}!`;
 }

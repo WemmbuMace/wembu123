@@ -110,12 +110,13 @@ export function createBotToolServer({ bot, state, getMcData }) {
         safe(({ size, height, material }) =>
           skills.buildHouse(bot, state, getMcData, size ?? 5, height ?? 3, material || 'oak_planks'))),
 
-      tool('orbital_cannon', 'Build a stylized "orbital cannon" launch silo next to the bot, then call an orbital strike: columns of TNT rained down from the sky onto a target ~14 blocks in front of the commanding player. Op-command based (needs no materials). Use for "orbital cannon / орбитальная пушка / орабитралка / orbital strike". Destructive — only on the player\'s request.',
+      tool('orbital_cannon', 'Build an "orbital cannon" silo next to the bot, then paint a giant RING of dynamite (TNT blocks) floating in the sky in front of the commanding player and, once fully placed, ignite it so the whole circle chain-detonates. Op-command based (needs no materials). Use for "orbital cannon / орбитальная пушка / орабитралка / orbital strike / TNT ring". Very destructive and server-heavy — only on the player\'s request.',
         {
           username: z.string().optional().describe('Commanding player to aim in front of; defaults to the commander'),
-          count: z.number().optional().describe('How many TNT to rain from the sky, 9-150 (default 100)'),
+          size: z.number().optional().describe('Ring diameter in blocks, 6-120 (default 100)'),
+          height: z.number().optional().describe('How far above the ground the ring floats, 5-120 (default 25)'),
         },
-        safe(({ username, count }) => structures.orbitalCannon(bot, state, who(username), { count }))),
+        safe(({ username, size, height }) => structures.orbitalCannon(bot, state, who(username), { size, height }))),
     ],
   });
 }
