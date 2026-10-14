@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вода — свойства, формула и три состояния · Алекс Хечеян</title>
+<!-- Шрифты с кириллицей: Tektur (заголовки), Golos Text (текст), JetBrains Mono (подписи) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tektur:wght@500;800;900&family=Golos+Text:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+/* ===========================================
+   THEME — поменяйте эти переменные, чтобы перекрасить всю презентацию
+   =========================================== */
+:root {
+    --stage-bg: #dcecf3;
+    --slide-bg: #f3f9fc;
+    --ink: #0f2a3d;          /* основной текст */
+    --muted: #4f6b80;        /* второстепенный текст */
+    --accent: #0a9fbd;       /* бирюзовый акцент */
+    --accent-soft: #d9f3f8;
+    --coral: #ff7a59;        /* тёплый акцент */
+    --grid: rgba(14, 74, 110, .07);
+    --font-display: 'Tektur', sans-serif;
+    --font-body: 'Golos Text', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+/* ===========================================
+   FIXED 16:9 STAGE: MANDATORY BASE STYLES
+   Include this ENTIRE file in every presentation.
+   Slides are authored at 1920×1080 and scaled as a whole.
+   =========================================== */
+
+/* 1. Lock the browser viewport */
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 16:9 design canvas.
+   JavaScript sets transform: translate(...) scale(...). */
+.deck-stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    transform-origin: 0 0;
+    background: var(--slide-bg, #fff);
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Content must be laid out at 1920×1080, not reflowed per device. */
+.slide {
+    position: absolute;
+    inset: 0;
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    background: var(--slide-bg, #fff);
+}
+
+.slide.active,
+.slide.visible {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img,
+video,
+canvas,
+svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* 6. Presentation chrome stays outside the slide design system */
+.deck-controls {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+    html,
+    body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-viewport {
+        position: static;
+        overflow: visible;
+        background: #fff;
+    }
+
+    .deck-stage {
+        position: static;
+        width: auto;
+        height: auto;
+        transform: none !important;
+        background: none;
+    }
+
+    .slide {
+        position: relative;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 1920px;
+        height: 1080px;
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .slide:last-child {
+        break-after: auto;
+        page-break-after: auto;
+    }
+
+    .deck-controls {
+        display: none !important;
+    }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.2s !important;
+    }
+}
+
+
+/* ===========================================
+   SLIDE BACKGROUND — светлая «лабораторная» сетка + мягкие пятна цвета
+   =========================================== */
+.slide {
+    color: var(--ink);
+    font-family: var(--font-body);
+    background:
+        radial-gradient(circle at 88% 8%, rgba(10,159,189,.20), transparent 38%),
+        radial-gradient(circle at 6% 96%, rgba(255,122,89,.13), transparent 34%),
+        linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 60px 60px,
+        linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 60px 60px,
+        linear-gradient(160deg, #f7fbfd 0%, #e6f4f9 100%);
+}
+
+/* ===========================================
+   TYPOGRAPHY
+   =========================================== */
+.kicker { font: 700 26px var(--font-mono); letter-spacing: .14em; text-transform: uppercase; color: var(--accent); }
+h2 { font: 800 96px/1 var(--font-display); letter-spacing: -2px; margin: 18px 0 48px; }
+b { font-weight: 700; color: var(--ink); }
+.hl { color: var(--accent); }
+.mono-l { font: 700 22px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.col-left { position: absolute; left: 110px; top: 100px; }
+
+/* ===========================================
+   TITLE SLIDE
+   =========================================== */
+.title-left { position: absolute; left: 130px; top: 190px; }
+.s-title h1 { font: 900 270px/0.9 var(--font-display); letter-spacing: -6px; margin-top: 20px; }
+.title-sub { font: 500 54px/1.3 var(--font-display); color: var(--muted); margin-top: 40px; }
+.author { display: flex; flex-direction: column; gap: 10px; margin-top: 60px; padding-left: 24px; border-left: 5px solid var(--coral); }
+.author-name { font: 800 52px var(--font-display); }
+.chips { position: absolute; left: 130px; bottom: 90px; display: flex; gap: 26px; }
+.chip { border: 3px solid #b9d3df; background: #fff; padding: 14px 28px; font: 700 26px var(--font-mono); letter-spacing: .08em; }
+.chip.on { border-color: var(--accent); color: var(--accent); }
+.poster { position: absolute; right: 120px; top: 200px; width: 820px; height: 615px; padding: 16px; background: #fff;
+    border: 3px solid var(--accent); box-shadow: 0 0 70px rgba(10,159,189,.28), 0 30px 60px rgba(15,42,61,.15); }
+.poster img { width: 100%; height: 100%; object-fit: cover; display: block; max-height: none; }
+
+/* ===========================================
+   MEMES & PHOTOS — карточки-«полароиды»
+   =========================================== */
+.meme, .photo { position: absolute; background: #fff; padding: 14px; box-shadow: 0 24px 50px rgba(15,42,61,.18); }
+.meme img { display: block; width: 100%; height: 100%; object-fit: contain; max-height: none; }
+.meme[style*="height"] img { width: auto; }
+.meme .tag { position: absolute; top: -20px; left: 20px; background: var(--coral); color: #fff; font: 700 20px var(--font-mono);
+    letter-spacing: .1em; text-transform: uppercase; padding: 8px 16px; }
+.photo { padding: 14px 14px 56px; border: 3px solid var(--accent); }
+.photo img { display: block; width: 100%; height: 100%; object-fit: cover; max-height: none; }
+.photo figcaption { position: absolute; left: 18px; bottom: 14px; font: 700 22px var(--font-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+
+/* ===========================================
+   LISTS, STATS, CELLS
+   =========================================== */
+.list { list-style: none; display: flex; flex-direction: column; gap: 40px; }
+.list li { position: relative; padding-left: 44px; font: 400 38px/1.4 var(--font-body); color: var(--muted); }
+.list li::before { content: ""; position: absolute; left: 0; top: 16px; width: 18px; height: 18px; background: var(--accent); }
+.stats { display: flex; flex-direction: column; gap: 40px; }
+.stat { display: flex; align-items: center; gap: 40px; }
+.stat b { font: 900 120px/1 var(--font-display); color: var(--accent); min-width: 330px; }
+.stat span { font: 400 36px/1.3 var(--font-body); color: var(--muted); }
+.formula-row { display: flex; align-items: center; gap: 60px; margin-bottom: 44px; }
+.formula { font: 900 220px/1 var(--font-display); }
+.formula sub { font-size: 110px; color: var(--accent); }
+.mol-t { font: 800 64px var(--font-display); fill: var(--ink); }
+.mol-a { font: 700 30px var(--font-mono); fill: var(--accent); }
+.cells { display: grid; grid-template-columns: repeat(3, 300px); gap: 26px; }
+.cell { background: #fff; border: 3px solid var(--accent); padding: 28px; height: 200px; display: flex; flex-direction: column; justify-content: space-between;
+    box-shadow: 0 0 40px rgba(10,159,189,.14); }
+.cell b { font: 800 60px var(--font-display); }
+.note { margin-top: 44px; font: 400 34px/1.4 var(--font-body); color: var(--muted); max-width: 960px; }
+
+/* three states */
+.states { display: flex; gap: 30px; }
+.state { width: 340px; background: #fff; padding: 14px; box-shadow: 0 20px 44px rgba(15,42,61,.15); border-top: 6px solid var(--accent); }
+.state img { width: 100%; height: 470px; object-fit: cover; display: block; max-height: none; }
+.state-t { padding: 20px 8px 8px; display: flex; flex-direction: column; gap: 8px; }
+.state-t b { font: 800 40px var(--font-display); }
+.state-t span { font: 700 22px var(--font-mono); color: var(--accent); text-transform: uppercase; letter-spacing: .06em; }
+
+/* transitions diagram */
+.tr-n { font: 800 44px var(--font-display); fill: var(--ink); }
+.tr-l { font: 700 27px var(--font-mono); }
+
+/* facts */
+.facts { display: grid; grid-template-columns: repeat(2, 490px); gap: 30px; }
+.fact { background: #fff; border-left: 6px solid var(--coral); padding: 30px 32px; height: 300px; display: flex; flex-direction: column; gap: 14px;
+    box-shadow: 0 16px 36px rgba(15,42,61,.10); }
+.fact i { font-style: normal; font-size: 52px; }
+.fact b { font: 800 40px/1.1 var(--font-display); }
+.fact span { font: 400 30px/1.35 var(--font-body); color: var(--muted); }
+
+/* conclusions */
+.concl { list-style: none; display: flex; flex-direction: column; gap: 34px; }
+.concl li { display: flex; align-items: center; gap: 36px; }
+.concl span { font: 900 70px var(--font-display); color: var(--accent); min-width: 120px; }
+.concl p { font: 400 40px/1.3 var(--font-body); color: var(--muted); }
+
+/* end slide */
+.end-h { font: 900 130px/1 var(--font-display); }
+.credits { position: absolute; left: 110px; right: 110px; bottom: 40px; font: 400 17px/1.5 var(--font-mono); color: #7f97a8; }
+
+/* ===========================================
+   ANIMATIONS — элементы .reveal появляются по очереди
+   =========================================== */
+.reveal { opacity: 0; translate: 0 34px; transition: opacity .8s var(--ease), translate .8s var(--ease); }
+.slide.visible .reveal { opacity: 1; translate: 0 0; }
+.slide.visible .reveal:nth-child(2) { transition-delay: .08s; }
+.slide.visible .reveal:nth-child(3) { transition-delay: .16s; }
+.slide.visible .reveal:nth-child(4) { transition-delay: .24s; }
+.slide.visible .reveal:nth-child(5) { transition-delay: .32s; }
+.slide.visible .meme, .slide.visible .photo { transition-delay: .3s; }
+
+/* ===========================================
+   CHROME — полоска прогресса и редактирование (вне слайда)
+   =========================================== */
+.progress { position: fixed; left: 0; bottom: 0; height: 5px; background: var(--accent); z-index: 1000; transition: width .4s var(--ease); }
+.edit-hotzone { position: fixed; top: 0; left: 0; width: 80px; height: 80px; z-index: 10000; cursor: pointer; }
+.edit-toggle { position: fixed; top: 16px; left: 16px; z-index: 10001; width: 48px; height: 48px; border: 2px solid var(--accent); background: #fff;
+    font-size: 22px; cursor: pointer; opacity: 0; pointer-events: none; transition: opacity .3s; }
+.edit-toggle.show, .edit-toggle.active { opacity: 1; pointer-events: auto; }
+.edit-toggle.active { background: var(--accent); }
+[contenteditable="true"] { outline: 2px dashed var(--coral); outline-offset: 4px; }
+</style>
+</head>
+<body>
+<div class="edit-hotzone"></div>
+<button class="edit-toggle" id="editToggle" title="Режим редактирования (E)">✏️</button>
+<div class="deck-viewport">
+<main class="deck-stage" id="deckStage">
+
+<section class="slide s-title" aria-label="Титульный слайд">
+  <div class="title-left">
+    <div class="kicker reveal">H₂O · оксид водорода</div>
+    <h1 class="reveal">ВОДА</h1>
+    <p class="title-sub reveal">Свойства, формула<br>и <span class="hl">три состояния</span></p>
+    <div class="author reveal"><span class="mono-l">Автор</span><span class="author-name">Алекс Хечеян</span></div>
+  </div>
+  <div class="chips reveal"><div class="chip on">ЛЁД</div><div class="chip">ЖИДКОСТЬ</div><div class="chip">ПАР</div></div>
+  <figure class="poster reveal"><img src="assets/h2o-poster.webp" alt="Постер сериала «H2O: Просто добавь воды»"></figure>
+</section>
+<section class="slide" aria-label="Вода вокруг нас">
+  <div class="col-left" style="width:860px">
+    <div class="kicker reveal">Знакомьтесь</div>
+    <h2 class="reveal">Вода вокруг нас</h2>
+    <div class="stats">
+      <div class="stat reveal"><b>71%</b><span>поверхности Земли<br>покрыто водой</span></div>
+      <div class="stat reveal"><b>~60%</b><span>массы тела человека —<br>это вода</span></div>
+      <div class="stat reveal"><b>97%</b><span>всей воды на планете —<br>солёные океаны</span></div>
+    </div>
+  </div>
+  <figure class="meme reveal" style="left:1030px;top:290px;width:780px;transform:rotate(1.5deg)"><span class="tag">мем · EN</span><img src="assets/memes/en-always.jpg" alt="Мем Always has been: Земля на 71% из воды"></figure>
+</section>
+<section class="slide" aria-label="Формула воды">
+  <div class="col-left" style="width:1000px">
+    <div class="kicker reveal">Формула</div>
+    <h2 class="reveal">Из чего состоит вода</h2>
+    <div class="formula-row reveal">
+      <div class="formula">H<sub>2</sub>O</div>
+      <svg class="mol" viewBox="0 0 440 330" width="440" height="330">
+  <defs>
+    <radialGradient id="gO" cx="35%" cy="30%"><stop offset="0" stop-color="#ffb4a3"/><stop offset=".5" stop-color="#ff7a59"/><stop offset="1" stop-color="#c2412a"/></radialGradient>
+    <radialGradient id="gH" cx="35%" cy="30%"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#d9f3f8"/><stop offset="1" stop-color="#7cc8e6"/></radialGradient>
+  </defs>
+  <line x1="220" y1="120" x2="90" y2="250" stroke="#9fb4c4" stroke-width="18" stroke-linecap="round"/>
+  <line x1="220" y1="120" x2="350" y2="250" stroke="#9fb4c4" stroke-width="18" stroke-linecap="round"/>
+  <path d="M170 170 A70 70 0 0 0 270 170" fill="none" stroke="#0a9fbd" stroke-width="4" stroke-dasharray="8 8"/>
+  <text x="220" y="225" text-anchor="middle" class="mol-a">104,5°</text>
+  <circle cx="220" cy="110" r="84" fill="url(#gO)"/><text x="220" y="112" text-anchor="middle" dominant-baseline="central" class="mol-t" fill="#fff">O</text>
+  <circle cx="85" cy="255" r="58" fill="url(#gH)"/><text x="85" y="257" text-anchor="middle" dominant-baseline="central" class="mol-t">H</text>
+  <circle cx="355" cy="255" r="58" fill="url(#gH)"/><text x="355" y="257" text-anchor="middle" dominant-baseline="central" class="mol-t">H</text>
+</svg>
+    </div>
+    <ul class="list"><li class="reveal"><b>2 атома водорода</b> + <b>1 атом кислорода</b></li><li class="reveal">Молярная масса — <b>18 г/моль</b></li><li class="reveal">Связь ковалентная полярная, молекула — <b>диполь</b></li></ul>
+  </div>
+  <figure class="meme reveal" style="left:1180px;top:200px;width:640px;transform:rotate(-1.5deg)"><span class="tag">мем · EN</span><img src="assets/memes/en-drake.jpg" alt="Мем Drake: water против dihydrogen monoxide"></figure>
+</section>
+<section class="slide" aria-label="Физические свойства">
+  <div class="col-left" style="width:1000px">
+    <div class="kicker reveal">Свойства</div>
+    <h2 class="reveal">Физические свойства</h2>
+    <div class="cells"><div class="cell reveal"><span class="mono-l">Цвет</span><b>нет</b></div><div class="cell reveal"><span class="mono-l">Запах</span><b>нет</b></div><div class="cell reveal"><span class="mono-l">Вкус</span><b>нет</b></div><div class="cell reveal"><span class="mono-l">t° плавления</span><b>0 °C</b></div><div class="cell reveal"><span class="mono-l">t° кипения</span><b>100 °C</b></div><div class="cell reveal"><span class="mono-l">Плотность</span><b>1 г/см³</b></div></div>
+    <p class="note reveal">💧 Вода — <b>лучший растворитель</b>: в ней растворяются соль, сахар и даже газы.</p>
+  </div>
+  <figure class="meme reveal" style="left:1130px;top:280px;width:690px;transform:rotate(1.5deg)"><span class="tag">мем · EN</span><img src="assets/memes/en-fine.jpg" alt="Мем This is fine: вода при 99 градусах"></figure>
+</section>
+<section class="slide" aria-label="Три агрегатных состояния">
+  <div class="col-left" style="width:1080px">
+    <div class="kicker reveal">Главное</div>
+    <h2 class="reveal">Три агрегатных состояния</h2>
+    <div class="states"><div class="state reveal"><img src="assets/ice.jpg" alt="лёд"><div class="state-t"><b>Твёрдое</b><span>лёд · ниже 0 °C</span></div></div><div class="state reveal"><img src="assets/water.jpg" alt="вода"><div class="state-t"><b>Жидкое</b><span>вода · 0 … 100 °C</span></div></div><div class="state reveal"><img src="assets/steam.jpg" alt="пар"><div class="state-t"><b>Газообразное</b><span>пар · выше 100 °C</span></div></div></div>
+  </div>
+  <figure class="meme reveal" style="left:1240px;top:110px;height:860px;transform:rotate(1deg)"><span class="tag">мем · EN</span><img src="assets/memes/en-brain.jpg" alt="Мем Expanding brain: лёд, вода, пар, тройная точка"></figure>
+</section>
+<section class="slide" aria-label="Лёд">
+  <div class="col-left" style="width:640px">
+    <div class="kicker reveal">Состояние 1</div>
+    <h2 class="reveal">Лёд</h2>
+    <ul class="list"><li class="reveal">Твёрдое состояние — <b>ниже 0 °C</b></li><li class="reveal">Молекулы стоят в <b>кристаллической решётке</b> из шестиугольников — поэтому у снежинок 6 лучей</li><li class="reveal">Лёд <b>легче воды</b> (0,92 г/см³), поэтому он плавает</li></ul>
+  </div>
+  <figure class="photo reveal" style="left:790px;top:210px;width:450px;height:620px;transform:rotate(-1.5deg)"><img src="assets/ice.jpg" alt="Кубики льда в стакане"><figcaption>фото · лёд</figcaption></figure>
+  <figure class="meme reveal" style="left:1280px;top:330px;width:540px;transform:rotate(1.5deg)"><span class="tag">мем · EN</span><img src="assets/memes/en-cat.jpg" alt="Мем Woman yelling at cat: лёд должен тонуть"></figure>
+</section>
+<section class="slide" aria-label="Жидкость">
+  <div class="col-left" style="width:640px">
+    <div class="kicker reveal">Состояние 2</div>
+    <h2 class="reveal">Жидкость</h2>
+    <ul class="list"><li class="reveal">Обычная вода — <b>от 0 до 100 °C</b></li><li class="reveal"><b>Текучая</b>: принимает форму сосуда, но сохраняет объём</li><li class="reveal">Молекулы близко, но <b>свободно двигаются</b></li></ul>
+  </div>
+  <figure class="photo reveal" style="left:770px;top:360px;width:560px;height:460px;transform:rotate(-1.5deg)"><img src="assets/water.jpg" alt="Всплеск капли воды"><figcaption>фото · вода</figcaption></figure>
+  <figure class="meme reveal" style="left:1360px;top:150px;height:760px;transform:rotate(1.5deg)"><span class="tag">мем · EN</span><img src="assets/memes/en-pikachu.jpg" alt="Мем Surprised Pikachu: вода стала квадратной"></figure>
+</section>
+<section class="slide" aria-label="Пар">
+  <div class="col-left" style="width:640px">
+    <div class="kicker reveal">Состояние 3</div>
+    <h2 class="reveal">Пар</h2>
+    <ul class="list"><li class="reveal">Газ: вода <b>кипит при 100 °C</b></li><li class="reveal"><b>Испаряется</b> при любой температуре — поэтому лужи высыхают</li><li class="reveal">Молекулы далеко друг от друга и летают хаотично</li></ul>
+  </div>
+  <figure class="photo reveal" style="left:760px;top:330px;width:600px;height:480px;transform:rotate(-1.5deg)"><img src="assets/steam.jpg" alt="Гейзер Строккур выбрасывает пар"><figcaption>фото · пар (гейзер)</figcaption></figure>
+  <figure class="meme reveal" style="left:1340px;top:250px;width:500px;transform:rotate(2deg)"><span class="tag">мем · RU</span><img src="assets/memes/ru-zhdun.jpg" alt="Мем Ждун: ждёшь, когда чайник закипит"></figure>
+</section>
+<section class="slide" aria-label="Переходы между состояниями">
+  <div class="kicker reveal" style="position:absolute;left:110px;top:100px">Как вода меняется</div>
+  <h2 class="reveal" style="position:absolute;left:110px;top:140px">Переходы между состояниями</h2>
+  <div class="reveal" style="position:absolute;left:90px;top:280px;transform:scale(.98);transform-origin:0 0"><svg class="trans" viewBox="0 0 1060 760" width="1060" height="760"><defs><marker id="arb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#0a9fbd"/></marker><marker id="arc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0L10,5L0,10z" fill="#ff7a59"/></marker></defs><line x1="242" y1="499" x2="443" y2="232" stroke="#0a9fbd" stroke-width="5" marker-end="url(#arb)"/><text x="306" y="338" transform="rotate(-52.9 306 338)" text-anchor="middle" dominant-baseline="middle" class="tr-l" fill="#0a9fbd">плавление</text><line x1="478" y1="251" x2="277" y2="518" stroke="#ff7a59" stroke-width="5" marker-end="url(#arc)"/><text x="414" y="412" transform="rotate(307.1 414 412)" text-anchor="middle" dominant-baseline="middle" class="tr-l" fill="#ff7a59">кристаллизация</text><line x1="613" y1="227" x2="815" y2="494" stroke="#0a9fbd" stroke-width="5" marker-end="url(#arb)"/><text x="751" y="333" transform="rotate(52.9 751 333)" text-anchor="middle" dominant-baseline="middle" class="tr-l" fill="#0a9fbd">испарение</text><line x1="787" y1="523" x2="585" y2="256" stroke="#ff7a59" stroke-width="5" marker-end="url(#arc)"/><text x="649" y="417" transform="rotate(52.9 649 417)" text-anchor="middle" dominant-baseline="middle" class="tr-l" fill="#ff7a59">конденсация</text><line x1="302" y1="580" x2="752" y2="580" stroke="#0a9fbd" stroke-width="5" marker-end="url(#arb)"/><text x="527" y="534" transform="rotate(0.0 527 534)" text-anchor="middle" dominant-baseline="middle" class="tr-l" fill="#0a9fbd">сублимация</text><line x1="758" y1="620" x2="308" y2="620" stroke="#ff7a59" stroke-width="5" marker-end="url(#arc)"/><text x="533" y="666" transform="rotate(360.0 533 666)" text-anchor="middle" dominant-baseline="middle" class="tr-l" fill="#ff7a59">десублимация</text><circle cx="190" cy="600" r="100" fill="#fff" stroke="#7cc8e6" stroke-width="6"/><text x="190" y="600" text-anchor="middle" dominant-baseline="central" class="tr-n">ЛЁД</text><circle cx="530" cy="150" r="100" fill="#fff" stroke="#0a9fbd" stroke-width="6"/><text x="530" y="150" text-anchor="middle" dominant-baseline="central" class="tr-n">ВОДА</text><circle cx="870" cy="600" r="100" fill="#fff" stroke="#9fb4c4" stroke-width="6"/><text x="870" y="600" text-anchor="middle" dominant-baseline="central" class="tr-n">ПАР</text></svg></div>
+  <figure class="meme reveal" style="left:1200px;top:330px;width:620px;transform:rotate(1.5deg)"><span class="tag">мем · RU</span><img src="assets/memes/ru-pooh.jpg" alt="Мем Винни-Пух: растаять против фазового перехода"></figure>
+</section>
+<section class="slide" aria-label="Удивительные свойства воды">
+  <div class="col-left" style="width:1020px">
+    <div class="kicker reveal">Аномалии</div>
+    <h2 class="reveal">Удивительные свойства</h2>
+    <div class="facts"><div class="fact reveal"><i>❄</i><b>Лёд легче воды</b><span>Водоёмы замерзают сверху — рыбы зимуют подо льдом</span></div><div class="fact reveal"><i>💥</i><b>Расширяется на 9%</b><span>Замерзая, вода разрывает трубы и бутылки</span></div><div class="fact reveal"><i>🌡</i><b>Самая плотная при +4 °C</b><span>На дне озёр зимой всегда около +4 °C</span></div><div class="fact reveal"><i>☀</i><b>Медленно нагревается</b><span>Моря смягчают климат: летом холодят, зимой греют</span></div></div>
+  </div>
+  <figure class="photo reveal" style="left:1230px;top:110px;width:590px;height:390px;transform:rotate(1.5deg)"><img src="assets/iceberg.jpg" alt="Глыба льда плавает в воде"><figcaption>фото · лёд не тонет</figcaption></figure>
+  <figure class="meme reveal" style="left:1230px;top:560px;width:590px;transform:rotate(-1.5deg)"><span class="tag">мем · EN</span><img src="assets/memes/en-gru.jpg" alt="Мем План Грю: вода расширяется при замерзании"></figure>
+</section>
+<section class="slide" aria-label="Выводы">
+  <div class="col-left" style="width:1060px">
+    <div class="kicker reveal">Итог</div>
+    <h2 class="reveal">Выводы</h2>
+    <ol class="concl"><li class="reveal"><span>01</span><p>Вода — <b>H₂O</b>: два водорода и один кислород</p></li><li class="reveal"><span>02</span><p>Бывает <b>твёрдой, жидкой и газообразной</b></p></li><li class="reveal"><span>03</span><p>Переходы: плавление, кипение, конденсация, кристаллизация</p></li><li class="reveal"><span>04</span><p>Лёд легче воды — и это спасает жизнь в водоёмах</p></li></ol>
+  </div>
+  <figure class="meme reveal" style="left:1250px;top:110px;height:860px;transform:rotate(1.5deg)"><span class="tag">мем · RU</span><img src="assets/memes/ru-panik.jpg" alt="Мем Panik Kalm Panik: контрольная про воду"></figure>
+</section>
+<section class="slide s-end" aria-label="Спасибо за внимание">
+  <div class="col-left" style="width:900px;top:200px">
+    <div class="kicker reveal">Конец</div>
+    <h2 class="end-h reveal">Спасибо<br>за внимание!</h2>
+    <div class="author reveal"><span class="mono-l">Автор</span><span class="author-name">Алекс Хечеян</span></div>
+  </div>
+  <figure class="meme reveal" style="left:1010px;top:250px;width:810px;transform:rotate(1.5deg)"><span class="tag">мем · RU</span><img src="assets/memes/ru-boyfriend.jpg" alt="Мем Distracted boyfriend: класс смотрит на мемы про воду"></figure>
+  <p class="credits">Фото: Wikimedia Commons — «Ice-Cubes» (בר, CC BY-SA 3.0); «Water drop, splash in blue» (gcardinal, CC BY 2.0);
+  гейзер Строккур и глыба льда (Andreas Tille, CC BY-SA 3.0/4.0); «Ждун в Чите» (Andrijko Z., CC BY-SA 4.0). Шаблоны мемов — imgflip.</p>
+</section>
+</main>
+</div>
+<div class="progress" id="progress"></div>
+<script>
+/* ===========================================
+   SLIDE PRESENTATION CONTROLLER
+   Стрелки / пробел / колёсико / свайп / клик
+   =========================================== */
+class SlidePresentation {
+    constructor() {
+        this.slides = [...document.querySelectorAll('.slide')];
+        this.stage = document.getElementById('deckStage');
+        this.bar = document.getElementById('progress');
+        this.current = 0;
+        this.scale();
+        addEventListener('resize', () => this.scale());
+        document.addEventListener('keydown', e => {
+            if (e.target.isContentEditable) return;
+            if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); this.go(this.current + 1); }
+            if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); this.go(this.current - 1); }
+            if (e.key === 'Home') this.go(0);
+            if (e.key === 'End') this.go(this.slides.length - 1);
+        });
+        let lock = 0;
+        addEventListener('wheel', e => {
+            const now = Date.now(); if (now - lock < 700 || Math.abs(e.deltaY) < 20) return;
+            lock = now; this.go(this.current + (e.deltaY > 0 ? 1 : -1));
+        }, { passive: true });
+        let x0 = null;
+        addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true });
+        addEventListener('touchend', e => {
+            if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
+            if (Math.abs(dx) > 50) this.go(this.current + (dx < 0 ? 1 : -1));
+        });
+        document.querySelector('.deck-viewport').addEventListener('click', e => {
+            if (document.body.classList.contains('editing')) return;
+            this.go(this.current + (e.clientX > innerWidth / 3 ? 1 : -1));
+        });
+        const start = parseInt(location.hash.slice(1), 10);
+        this.go(Number.isFinite(start) ? start - 1 : 0);
+    }
+    scale() {
+        const f = Math.min(innerWidth / 1920, innerHeight / 1080);
+        this.stage.style.transform = `translate(${(innerWidth - 1920 * f) / 2}px, ${(innerHeight - 1080 * f) / 2}px) scale(${f})`;
+    }
+    go(i) {
+        this.current = Math.max(0, Math.min(i, this.slides.length - 1));
+        this.slides.forEach((s, k) => { s.classList.toggle('active', k === this.current); s.classList.toggle('visible', k === this.current); });
+        this.bar.style.width = `${(this.current + 1) / this.slides.length * 100}%`;
+        history.replaceState(null, '', '#' + (this.current + 1));
+    }
+}
+const deck = new SlidePresentation();
+
+/* ===========================================
+   INLINE EDITING — наведите в левый верхний угол или нажмите E,
+   кликните по тексту и правьте; Ctrl+S скачает исправленный файл
+   =========================================== */
+const editor = {
+    isActive: false,
+    targets: () => document.querySelectorAll('.slide h1, .slide h2, .slide p, .slide li, .slide .kicker, .slide .author-name, .slide .stat span, .slide .cell b, .slide .fact b, .slide .fact span'),
+    toggleEditMode() {
+        this.isActive = !this.isActive;
+        document.body.classList.toggle('editing', this.isActive);
+        document.getElementById('editToggle').classList.toggle('active', this.isActive);
+        this.targets().forEach(el => el.contentEditable = this.isActive ? 'true' : 'false');
+    },
+    save() {
+        if (this.isActive) this.toggleEditMode();
+        const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([html], { type: 'text/html' })), download: 'index.html' });
+        a.click();
+    }
+};
+const editToggle = document.getElementById('editToggle');
+const hotzone = document.querySelector('.edit-hotzone');
+let hideTimeout = null;
+editToggle.addEventListener('click', e => { e.stopPropagation(); editor.toggleEditMode(); });
+hotzone.addEventListener('click', e => { e.stopPropagation(); editor.toggleEditMode(); });
+const hideLater = () => { hideTimeout = setTimeout(() => { if (!editor.isActive) editToggle.classList.remove('show'); }, 400); };
+hotzone.addEventListener('mouseenter', () => { clearTimeout(hideTimeout); editToggle.classList.add('show'); });
+hotzone.addEventListener('mouseleave', hideLater);
+editToggle.addEventListener('mouseenter', () => clearTimeout(hideTimeout));
+editToggle.addEventListener('mouseleave', hideLater);
+document.addEventListener('keydown', e => {
+    if ((e.key === 'e' || e.key === 'E' || e.key === 'у' || e.key === 'У') && !e.target.isContentEditable) editor.toggleEditMode();
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); editor.save(); }
+});
+</script>
+</body>
+</html>
